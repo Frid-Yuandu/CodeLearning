@@ -32,29 +32,20 @@ func NewUser(conn net.Conn, server *Server) *User {
 
 func (u *User) Online() {
 	s := u.server
-
-	// To add user into OnlineMap.
-	s.OnlineMap.Store(u.Name, u)
-
-	// Broadcast current user connection message.
+	s.onlineMap.Store(u.Name, u)
 	s.Broadcast(u, "Has logged in.")
 }
 
 func (u *User) Offline() {
 	s := u.server
-
-	// To delete user in OnlineMap.
-	s.OnlineMap.Delete(u.Name)
-
-	// Broadcast current user logged out message.
+	s.onlineMap.Delete(u.Name)
 	s.Broadcast(u, "Has logged out.")
 }
 
 func (u *User) Rename(newName string) {
-	// check whether newName is already in OnlineMap
+	// check whether newName is already in onlineMap
 	s := u.server
-	if _, ok := s.UserExist(newName); ok {
-		// This statement means newName is already in OnlineMap.
+	if _, ok := s.onlineMap.Load(newName); ok {
 		u.SendToUser("name is already in use")
 		return
 	}
@@ -69,17 +60,17 @@ func (u *User) Rename(newName string) {
 func (u *User) SendToUser(msg string) {
 	_, err := u.conn.Write([]byte(msg + "\n"))
 	if err != nil {
-		fmt.Println("user:", u.Name, "conn.Write error:", err)
+		fmt.Println("user:", u.Name, "SendToUser error:", err)
 	}
 }
 
-// DoMessage implement business of checking & sending message.
-func (u *User) DoMessage(msg string) {
+// ProcessMessage implement business of checking & sending message.
+func (u *User) ProcessMessage(msg string) {
 	if msg == "who" {
 		// Searching online user.
 		s := u.server
 
-		s.OnlineMap.Range(func(_, otherUser any) bool {
+		s.onlineMap.Range(func(_, otherUser any) bool {
 			onlineMsg := "[" + otherUser.(*User).Addr + "]" + otherUser.(*User).Name + ":" + "is online.\n"
 			u.SendToUser(onlineMsg)
 			return true
@@ -101,7 +92,7 @@ func (u *User) DoMessage(msg string) {
 		}
 
 		remoteName := splitMsg[1]
-		remoteUser, ok := u.server.UserExist(remoteName)
+		remoteUser, ok := u.server.onlineMap.Load(remoteName)
 		if !ok {
 			u.SendToUser("no such user:" + remoteName)
 			return
@@ -112,7 +103,7 @@ func (u *User) DoMessage(msg string) {
 			u.SendToUser("empty message, please type something.")
 			return
 		}
-		remoteUser.SendToUser(u.Name + " send to you:" + content)
+		remoteUser.(*User).SendToUser(u.Name + " send to you:" + content)
 
 	} else {
 		u.server.Broadcast(u, msg)
