@@ -68,14 +68,12 @@ func (u *User) SendToUser(msg string) {
 func (u *User) ProcessMessage(msg string) {
 	if msg == "who" {
 		u.SearchOnlineUsers()
-
 	} else if strings.HasPrefix(msg, "rename|") {
 		// Expected message type: rename|newName. Everything after "|" will be the new
 		// name. strings.Split method will split the message by "|" and returns a slice
 		// of string containing the 2 elements: "rename" and the variable newName.
 		newName := strings.Split(msg, "|")[1]
 		u.Rename(newName)
-
 	} else if strings.HasPrefix(msg, "to|") {
 		u.SideText(msg)
 	} else {
