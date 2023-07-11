@@ -25,7 +25,7 @@ type Server struct {
 	Message chan string
 }
 
-func (s *Server) Start() {
+func (s *Server) Run() {
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", s.IP, s.Port))
 	if err != nil {
 		fmt.Println("net.Listen error:", err)

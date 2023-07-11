@@ -86,7 +86,7 @@ func (u *User) ListenMessage() {
 	for {
 		msg, ok := <-u.C
 		if !ok {
-			fmt.Println("raise from User.ListenMessage | user:", u.Name, "channel close")
+			fmt.Println("user:", u.Name, "channel close")
 			return
 		}
 		_, err := u.conn.Write([]byte(msg + "\n"))
