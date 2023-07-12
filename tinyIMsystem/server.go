@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"runtime"
 	"sync"
 	"time"
 )
@@ -37,7 +36,6 @@ func (s *Server) Run() {
 
 	go s.ListenMessage()
 
-	// Starting accept request.
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -54,42 +52,37 @@ func (s *Server) Handler(conn net.Conn) {
 	u.Online()
 	isActive := make(chan struct{})
 
-	// This Goroutine will read the current user's messages and call the
-	// ProcessMessage method after a simple conversation.
-	go func() {
-		buf := make([]byte, HandlerReadBuffer)
-		for {
-			n, err := conn.Read(buf)
-			if err != nil && err != io.EOF {
-				fmt.Println("raise from Server.Handle | conn.Read error:", err)
-				return
-			}
-			if n == 0 {
-				u.Offline()
-				return
-			}
-
-			msg := string(buf[:n-1])
-			u.ProcessMessage(msg)
-			isActive <- struct{}{}
-		}
-	}()
+	go s.HandleMessage(u, isActive)
 
 	for {
 		select {
 		case <-isActive:
 			// This statement means that current user is active. Timeout will be reset
 			// automatically while this statement written above time.After case.
-		case <-time.After(5 * time.Minute):
-			u.SendToUser("Your session has timed out.")
-
-			// Release user source
-			s.onlineMap.Delete(u.Name)
-			close(u.ReceiveMessage)
-			_ = conn.Close()
-
-			runtime.Goexit()
+		case <-time.After(5 * time.Second):
+			u.dealTimeout()
 		}
+	}
+}
+
+// HandleMessage reads message from provided user's connection and call the
+// selectMessageProcess method after a simple conversation.
+func (s *Server) HandleMessage(u *User, isActive chan struct{}) {
+	buf := make([]byte, HandlerReadBuffer)
+	for {
+		n, err := u.conn.Read(buf)
+		if err != nil && err != io.EOF {
+			fmt.Println("raise from Server.Handle | conn.Read error:", err)
+			return
+		}
+		if n == 0 {
+			u.Offline()
+			return
+		}
+
+		msg := string(buf[:n-1])
+		u.selectMessageProcess(msg)
+		isActive <- struct{}{}
 	}
 }
 

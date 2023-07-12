@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"runtime"
 	"strings"
 )
 
@@ -42,6 +43,18 @@ func (u *User) Offline() {
 	s.Broadcast(u, "Has logged out.")
 }
 
+func (u *User) dealTimeout() {
+	u.SendToUser("Your session has timed out.")
+	u.releaseSource()
+	runtime.Goexit()
+}
+
+func (u *User) releaseSource() {
+	u.server.onlineMap.Delete(u.Name)
+	close(u.ReceiveMessage)
+	_ = u.conn.Close()
+}
+
 func (u *User) DecodeToRename(msg string) {
 	// check whether newName is already in onlineMap
 	newName := strings.Split(msg, "|")[1]
@@ -67,8 +80,8 @@ func (u *User) SendToUser(msg string) {
 	}
 }
 
-// ProcessMessage implement business of checking & sending message.
-func (u *User) ProcessMessage(msg string) {
+// selectMessageProcess implement business of checking & sending message.
+func (u *User) selectMessageProcess(msg string) {
 	if msg == "who" {
 		u.SearchOnlineUsers()
 	} else if strings.HasPrefix(msg, "rename|") {
