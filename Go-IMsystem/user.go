@@ -7,10 +7,10 @@ import (
 )
 
 type User struct {
-	Name string
-	Addr string
-	C    chan string
-	conn net.Conn
+	Name           string
+	Addr           string
+	ReceiveMessage chan string
+	conn           net.Conn
 
 	server *Server
 }
@@ -18,11 +18,11 @@ type User struct {
 func NewUser(conn net.Conn, server *Server) *User {
 	userAddr := conn.RemoteAddr().String()
 	user := &User{
-		Name:   userAddr,
-		Addr:   userAddr,
-		C:      make(chan string),
-		conn:   conn,
-		server: server,
+		Name:           userAddr,
+		Addr:           userAddr,
+		ReceiveMessage: make(chan string),
+		conn:           conn,
+		server:         server,
 	}
 
 	// start listening message
@@ -42,17 +42,20 @@ func (u *User) Offline() {
 	s.Broadcast(u, "Has logged out.")
 }
 
-func (u *User) Rename(newName string) {
+func (u *User) DecodeToRename(msg string) {
 	// check whether newName is already in onlineMap
-	s := u.server
-	if _, ok := s.onlineMap.Load(newName); ok {
+	newName := strings.Split(msg, "|")[1]
+	if _, ok := u.server.onlineMap.Load(newName); ok {
 		u.SendToUser("name is already in use")
 		return
 	}
-
-	s.UpdateUserMap(u.Name, newName)
-	u.Name = newName
+	u.rename(newName)
 	u.SendToUser("rename successful:" + newName + "\n")
+}
+
+func (u *User) rename(newName string) {
+	u.server.UpdateUserName(u.Name, newName)
+	u.Name = newName
 }
 
 // SendToUser provide an API to send message to current user's client and will
@@ -69,13 +72,11 @@ func (u *User) ProcessMessage(msg string) {
 	if msg == "who" {
 		u.SearchOnlineUsers()
 	} else if strings.HasPrefix(msg, "rename|") {
-		// Expected message type: rename|newName. Everything after "|" will be the new
-		// name. strings.Split method will split the message by "|" and returns a slice
-		// of string containing the 2 elements: "rename" and the variable newName.
-		newName := strings.Split(msg, "|")[1]
-		u.Rename(newName)
+		// Expected message type: rename|newName.
+		u.DecodeToRename(msg)
 	} else if strings.HasPrefix(msg, "to|") {
-		u.SideText(msg)
+		// Expected message type: to|remoteName|msg
+		u.DecodeToPrivateChat(msg)
 	} else {
 		u.server.Broadcast(u, msg)
 	}
@@ -84,7 +85,7 @@ func (u *User) ProcessMessage(msg string) {
 // ListenMessage listen to user channel, send to client if receive message.
 func (u *User) ListenMessage() {
 	for {
-		msg, ok := <-u.C
+		msg, ok := <-u.ReceiveMessage
 		if !ok {
 			fmt.Println("user:", u.Name, "channel close")
 			return
@@ -98,7 +99,6 @@ func (u *User) ListenMessage() {
 
 func (u *User) SearchOnlineUsers() {
 	s := u.server
-
 	s.onlineMap.Range(func(_, otherUser any) bool {
 		onlineMsg := "[" + otherUser.(*User).Addr + "]" + otherUser.(*User).Name + ":" + "is online.\n"
 		u.SendToUser(onlineMsg)
@@ -106,25 +106,27 @@ func (u *User) SearchOnlineUsers() {
 	})
 }
 
-func (u *User) SideText(msg string) {
-	// Expected message type: to|remoteName|msg
+func (u *User) DecodeToPrivateChat(msg string) {
 	splitMsg := strings.Split(msg, "|")
+	if u.checkPrivateChatAPI(splitMsg) {
+		remoteName, content := splitMsg[1], splitMsg[2]
+		remoteUser, _ := u.server.onlineMap.Load(remoteName)
+		remoteUser.(*User).SendToUser(u.Name + " send to you:" + content)
+	}
+}
+
+func (u *User) checkPrivateChatAPI(splitMsg []string) bool {
 	if len(splitMsg) != 3 {
 		u.SendToUser("side-text type error, please type in 'to|remoteName|msg'")
-		return
+		return false
 	}
-
-	remoteName := splitMsg[1]
-	remoteUser, ok := u.server.onlineMap.Load(remoteName)
-	if !ok {
+	remoteName, content := splitMsg[1], splitMsg[2]
+	if _, ok := u.server.onlineMap.Load(remoteName); !ok {
 		u.SendToUser("no such user:" + remoteName)
-		return
-	}
-
-	content := splitMsg[2]
-	if content == "" {
+		return false
+	} else if content == "" {
 		u.SendToUser("empty message, please type something.")
-		return
+		return false
 	}
-	remoteUser.(*User).SendToUser(u.Name + " send to you:" + content)
+	return true
 }
