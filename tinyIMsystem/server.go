@@ -86,8 +86,13 @@ func (s *Server) HandleMessage(u *User, isActive chan struct{}) {
 	}
 }
 
-// UpdateUserName updates the user map with a new name for an existing user.
-func (s *Server) UpdateUserName(name, newName string) {
+func (s *Server) UserExists(userName string) bool {
+	_, ok := s.onlineMap.Load(userName)
+	return ok
+}
+
+// UpdateMapUsername updates the user map with a new name for an existing user.
+func (s *Server) UpdateMapUsername(name, newName string) {
 	u, _ := s.onlineMap.Load(name)
 	s.onlineMap.Store(newName, u.(*User))
 	s.onlineMap.Delete(name)
@@ -108,7 +113,7 @@ func (s *Server) ListenMessage() {
 }
 
 func (s *Server) Broadcast(user *User, msg string) {
-	sendMsg := "[" + user.Addr + "]" + user.Name + ":" + msg
+	sendMsg := "[" + user.addr + "]" + user.name + ":" + msg
 	s.broadcastMessage <- sendMsg
 }
 

@@ -27,7 +27,7 @@ func (c *Client) Menu() bool {
 	fmt.Println("1.Public chat\n" +
 		"2.Private chat\n" +
 		"3.Search online users\n" +
-		"4.DecodeToRename\n" +
+		"4.Rename\n" +
 		"0.Exit")
 
 	_, err := fmt.Scanln(&selectFlag)
@@ -59,7 +59,7 @@ func (c *Client) Run() {
 			fmt.Println("=====>Search online users<=====")
 			c.SearchOnlineUsers()
 		case 4:
-			fmt.Println("=====>DecodeToRename<=====")
+			fmt.Println("=====>Rename<=====")
 			c.Rename()
 		}
 	}
@@ -76,10 +76,10 @@ func (c *Client) Rename() bool {
 	fmt.Println(">>>>>please type in new name:")
 	_, _ = fmt.Scanln(&c.Name)
 
-	sendMsg := "rename|" + c.Name + "\n"
+	sendMsg := "updateValidName|" + c.Name + "\n"
 	_, err := c.conn.Write([]byte(sendMsg))
 	if err != nil {
-		fmt.Println("raise from Client.DecodeToRename | conn.Write error:", err)
+		fmt.Println("raise from Client.Rename | conn.Write error:", err)
 		return false
 	}
 	return true
@@ -147,7 +147,7 @@ func (c *Client) PrivateChat() {
 		sendMsg := "to|" + chatWithUser + "|" + chatMsg + "\n"
 		_, err := c.conn.Write([]byte(sendMsg))
 		if err != nil {
-			fmt.Println("raise from Client.DecodeToPrivateChat | conn.Write error:", err)
+			fmt.Println("raise from Client.PrivateChat | conn.Write error:", err)
 			return
 		}
 
