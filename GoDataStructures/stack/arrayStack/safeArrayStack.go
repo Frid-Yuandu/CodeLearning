@@ -65,6 +65,8 @@ func (s *SafeArrayStack[T]) Clear() {
 }
 
 func (s *SafeArrayStack[T]) Clone() *SafeArrayStack[T] {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 	return &SafeArrayStack[T]{data: s.data, top: s.top}
 }
 

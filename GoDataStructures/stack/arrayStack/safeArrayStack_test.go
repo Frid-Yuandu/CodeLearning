@@ -1,6 +1,7 @@
 package arrayStack
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 )
@@ -29,6 +30,20 @@ func TestSafeArrayStack_DataRace(t *testing.T) {
 	}()
 
 	wg.Wait()
+}
+
+func TestSafeArrayStack_CloneReference(t *testing.T) {
+	s := NewSafeArrayStack[int]()
+	for i := 0; i < 1000; i++ {
+		s.Push(i)
+	}
+	s2 := s.Clone()
+	if &s2.data == & s.data {
+		t.Error("these stack have the same reference")
+	}else {
+		fmt.Printf("address of s: %p, address of s2: %p\n",
+			&s.data, &s2.data)
+	}
 }
 
 func BenchmarkSafeArrayStack_Push(b *testing.B) {
