@@ -1,5 +1,7 @@
 package arrayStack
 
+const oneByte = 8
+
 import (
 	"sync"
 )
@@ -76,7 +78,7 @@ func (s *SafeArrayStack[T]) init() {
 }
 
 func (s *SafeArrayStack[T]) lazyInit() {
-	if s.data == nil && s.top == 0 {
+	if s.data == nil {
 		s.init()
 	}
 }

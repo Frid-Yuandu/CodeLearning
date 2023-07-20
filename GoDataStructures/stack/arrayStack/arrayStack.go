@@ -1,5 +1,7 @@
 package arrayStack
 
+const oneByte = 8
+
 type ArrayStack[T any] struct {
 	data []T
 	top  uint
@@ -15,18 +17,16 @@ func (s *ArrayStack[T]) Push(value T) {
 	s.top++
 }
 
-func (s *ArrayStack[T]) Top() (T, bool) {
-	var zeroValue T
+func (s *ArrayStack[T]) Top() (value T, found bool) {
 	if s.Empty() {
-		return zeroValue, false
+		return value, false
 	}
 	return s.data[s.top-1], true
 }
 
-func (s *ArrayStack[T]) Pop() (T, bool) {
-	var zeroValue T
+func (s *ArrayStack[T]) Pop() (value T, found bool) {
 	if s.Empty() {
-		return zeroValue, false
+		return value, false
 	}
 	return s.popAndReturn(), true
 }
@@ -49,13 +49,13 @@ func (s *ArrayStack[T]) Clear() {
 }
 
 func (s *ArrayStack[T]) init() *ArrayStack[T] {
-	s.data = make([]T, 0, 10)
+	s.data = make([]T, 0, oneByte)
 	s.top = 0
 	return s
 }
 
 func (s *ArrayStack[T]) lazyInit() {
-	if s.data == nil && s.top == 0 {
+	if s.data == nil {
 		s.init()
 	}
 }
