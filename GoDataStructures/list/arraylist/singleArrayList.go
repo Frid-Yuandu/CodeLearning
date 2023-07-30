@@ -5,8 +5,6 @@ import (
 	"yo/list"
 )
 
-const oneByte = 8
-
 type SingleArrayList[T comparable] struct {
 	data []T
 	len  uint
@@ -16,7 +14,7 @@ func (l *SingleArrayList[T]) Len() uint     { return l.len }
 func (l *SingleArrayList[T]) IsEmpty() bool { return l.len == 0 }
 
 func (l *SingleArrayList[T]) init() *SingleArrayList[T] {
-	l.data = make([]T, 0, oneByte)
+	l.data = make([]T, 0)
 	l.len = 0
 	return l
 }
@@ -31,7 +29,7 @@ func (l *SingleArrayList[T]) Clear() {
 	l.init()
 }
 
-func (l *SingleArrayList[T]) Clone() list.SingleList[T] {
+func (l *SingleArrayList[T]) Clone() list.List[T] {
 	return &SingleArrayList[T]{
 		data: l.data,
 		len:  l.len,
@@ -52,21 +50,29 @@ func (l *SingleArrayList[T]) AddAt(index uint, value T) {
 	l.lazyInit()
 	if index > l.len {
 		return
-	} else if l.IsEmpty() || index == l.len {
+	} else if index == l.len {
 		l.add(value, l.data)
 	} else {
-		l.add(value, l.data[:index-1], l.data[index-1:])
+		l.add(value, l.data[:index], l.data[index:])
 	}
 }
 
 // the first element of joint is the head, and the second element is the tail.
-func (l *SingleArrayList[T]) add(value T, joint ...[]T) {
-	result := append(joint[0], value)
-	if len(joint) > 1 {
-		result = append(result, joint[1]...)
+func (l *SingleArrayList[T]) add(value T, joined ...[]T) {
+	result := l.joinWithCopy(joined[0], []T{value})
+	if len(joined) > 1 {
+		result = l.joinWithCopy(result, joined[1])
 	}
+
 	l.data = result
 	l.len++
+}
+
+func (l *SingleArrayList[T]) joinWithCopy(prev []T, post []T) []T {
+	prevCopy := make([]T, len(prev))
+	copy(prevCopy, prev)
+	result := append(prevCopy, post...)
+	return result
 }
 
 func (l *SingleArrayList[T]) find(value T) (uint, bool) {
@@ -115,7 +121,7 @@ func (l *SingleArrayList[T]) Remove(index uint) (value T, found bool) {
 	return
 }
 
-func (l *SingleArrayList[T]) RemoveByValue(value T) (index uint, found bool) {
+func (l *SingleArrayList[T]) RemoveValue(value T) (index uint, found bool) {
 	if index, found = l.find(value); !found {
 		return
 	}
@@ -140,4 +146,8 @@ func (l *SingleArrayList[T]) Show() (showed string) {
 		}
 	}
 	return
+}
+
+func NewSingle[T comparable]() list.List[T] {
+	return (&SingleArrayList[T]{}).init()
 }
