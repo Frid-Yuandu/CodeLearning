@@ -1,19 +1,22 @@
 package list
 
-type SingleList[T comparable] interface {
+type List[T comparable] interface {
 	IsEmpty() bool
 	Len() uint
 	Clear()
-	Clone() SingleList[T]
+	Clone() List[T]
 
-	AddAt(uint, T)
+	AddAtHead(T)
+	AddAtTail(T)
+	AddAt(index uint, value T)
 
-	Find(T) (uint, bool)
-	Get(uint) (T, bool)
-	Head() (T, bool)
-	Tail() (T, bool)
+	Find(value T) (index uint, found bool)
+	Get(index uint) (value T, found bool)
+	Head() (value T, found bool)
+	Tail() (value T, found bool)
 
-	Set(uint, T) bool
+	Set(index uint, value T) bool
 
-	Remove(uint) (T, bool)
+	Remove(uint) (value T, succeed bool)
+	RemoveValue(T) (index uint, succeed bool)
 }
